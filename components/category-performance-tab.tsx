@@ -22,75 +22,92 @@ export default function CategoryPerformanceTab() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(
-          "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/tab_category_performance-zCpvkRYJVjFEpleb7E173lUafzkXmG.csv",
-        )
+        const response = await fetch("/data/usa_etf_data.csv")
         const text = await response.text()
 
         const lines = text.split("\n").filter((line) => line.trim())
         const headers = lines[0].split(",")
 
-        const categories: Array<{
-          category: string
-          threeYearReturn: number
-          fiveYearReturn: number
-          totalAssets: number
-        }> = []
+        // Kategorilere göre verileri grupla
+        const categoryMap = new Map<string, {
+          threeYearReturn: number[]
+          fiveYearReturn: number[]
+          totalAssets: number[]
+        }>()
 
         for (let i = 1; i < lines.length; i++) {
           const values = lines[i].split(",")
-          const category = values[0]?.replace(/"/g, "")
-          const threeYearReturn = Number.parseFloat(values[1]?.replace(/"/g, "")) * 100 || 0
-          const fiveYearReturn = Number.parseFloat(values[2]?.replace(/"/g, "")) * 100 || 0
-          const totalAssets = Number.parseFloat(values[3]) || 0
+          // Kategori ismini doğru kolondan al
+          const category = values[headers.indexOf("category")]?.replace(/"/g, "").trim()
+          const threeYearReturn = Number.parseFloat(values[headers.indexOf("threeYearAverageReturn")]?.replace(/"/g, "")) * 100 || 0
+          const fiveYearReturn = Number.parseFloat(values[headers.indexOf("fiveYearAverageReturn")]?.replace(/"/g, "")) * 100 || 0
+          const totalAssets = Number.parseFloat(values[headers.indexOf("totalAssets")]) || 0
 
-          if (category) {
-            categories.push({
-              category,
-              threeYearReturn,
-              fiveYearReturn,
-              totalAssets,
-            })
+          // Geçerli kategori kontrolü
+          if (category && 
+              !category.includes("Insider") && 
+              !category.includes("Value ETF") && 
+              !isNaN(threeYearReturn) && 
+              !isNaN(fiveYearReturn) && 
+              !isNaN(totalAssets)) {
+            
+            if (!categoryMap.has(category)) {
+              categoryMap.set(category, {
+                threeYearReturn: [],
+                fiveYearReturn: [],
+                totalAssets: []
+              })
+            }
+            const categoryData = categoryMap.get(category)!
+            categoryData.threeYearReturn.push(threeYearReturn)
+            categoryData.fiveYearReturn.push(fiveYearReturn)
+            categoryData.totalAssets.push(totalAssets)
           }
         }
 
-        // Sort by returns for best categories
-        const sortedBy3Y = [...categories].sort((a, b) => b.threeYearReturn - a.threeYearReturn)
-        const sortedBy5Y = [...categories].sort((a, b) => b.fiveYearReturn - a.fiveYearReturn)
-
-        // Get top 10 categories for combined chart
-        const top10Categories = sortedBy3Y.slice(0, 10)
-        const combinedTopData = top10Categories.map((cat) => ({
-          category: cat.category,
-          return3Y: cat.threeYearReturn,
-          return5Y: cat.fiveYearReturn,
+        // Kategorilerin ortalama değerlerini hesapla
+        const categories = Array.from(categoryMap.entries()).map(([category, data]) => ({
+          category,
+          threeYearReturn: data.threeYearReturn.reduce((a, b) => a + b, 0) / data.threeYearReturn.length,
+          fiveYearReturn: data.fiveYearReturn.reduce((a, b) => a + b, 0) / data.fiveYearReturn.length,
+          totalAssets: data.totalAssets.reduce((a, b) => a + b, 0)
         }))
+
+        // 3Y return'e göre sırala ve top 20'yi al
+        const sortedBy3Y = [...categories].sort((a, b) => b.threeYearReturn - a.threeYearReturn)
+        const top20By3Y = sortedBy3Y.slice(0, 20)
+
+        // Total assets'e göre sırala ve top 20'yi al
+        const sortedByAssets = [...categories].sort((a, b) => b.totalAssets - a.totalAssets)
+        const top20ByAssets = sortedByAssets.slice(0, 20)
 
         setData({
           totalCategories: categories.length,
           bestCategory3Y: {
-            name: sortedBy3Y[0]?.category || "Technology",
-            return: sortedBy3Y[0]?.threeYearReturn || 16.8,
+            name: top20By3Y[0]?.category || "N/A",
+            return: top20By3Y[0]?.threeYearReturn || 0,
           },
           bestCategory5Y: {
-            name: sortedBy5Y[0]?.category || "Technology",
-            return: sortedBy5Y[0]?.fiveYearReturn || 18.2,
+            name: top20By3Y[0]?.category || "N/A",
+            return: top20By3Y[0]?.fiveYearReturn || 0,
           },
-          category3YData: sortedBy3Y.map((cat) => ({
+          category3YData: top20By3Y.map(cat => ({
             category: cat.category,
             return: cat.threeYearReturn,
           })),
-          category5YData: sortedBy5Y.map((cat) => ({
+          category5YData: top20By3Y.map(cat => ({
             category: cat.category,
             return: cat.fiveYearReturn,
           })),
-          categoryAssetsData: categories
-            .sort((a, b) => b.totalAssets - a.totalAssets)
-            .map((cat) => ({
-              category: cat.category,
-              assets: cat.totalAssets,
-            })),
-          combinedTopData,
+          categoryAssetsData: top20ByAssets.map(cat => ({
+            category: cat.category,
+            assets: cat.totalAssets,
+          })),
+          combinedTopData: top20By3Y.map(cat => ({
+            category: cat.category,
+            return3Y: cat.threeYearReturn,
+            return5Y: cat.fiveYearReturn,
+          })),
         })
       } catch (error) {
         console.error("Error fetching data:", error)
@@ -192,12 +209,12 @@ export default function CategoryPerformanceTab() {
       </div>
 
       {/* Category Performance Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Combined Top 10 Performance - Side by Side */}
+      <div className="space-y-6">
+        {/* Top 20 Categories: 3Y vs 5Y Returns - Full Width */}
         <Card>
           <CardHeader>
-            <CardTitle>Top 10 Categories: 3Y vs 5Y Returns</CardTitle>
-            <CardDescription>Comparison of 3-year and 5-year returns for top performing categories</CardDescription>
+            <CardTitle>Top Categories: 3Y vs 5Y Returns</CardTitle>
+            <CardDescription>Top 20 categories by 3-year returns, showing both 3Y and 5Y performance</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer
@@ -205,19 +222,25 @@ export default function CategoryPerformanceTab() {
                 return3Y: { label: "3Y Return %", color: "hsl(var(--chart-1))" },
                 return5Y: { label: "5Y Return %", color: "hsl(var(--chart-2))" },
               }}
-              className="h-[500px] w-full"
+              className="h-[600px] w-full"
             >
-              <BarChart data={data.combinedTopData} width="100%" height={500}>
+              <BarChart data={data.category3YData.slice(0, 20).map((cat, i) => ({
+                category: cat.category,
+                return3Y: cat.return,
+                return5Y: data.category5YData.find(c => c.category === cat.category)?.return ?? 0
+              }))} width={1200} height={1200}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="category"
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: 9 }}
                   angle={-45}
                   textAnchor="end"
-                  height={80}
+                  height={100}
                   interval={0}
                 />
-                <YAxis tick={{ fontSize: 12 }} />
+                <YAxis 
+                  tick={{ fontSize: 14 }}
+                />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="return3Y" fill="hsl(var(--chart-1))" radius={[2, 2, 0, 0]} />
                 <Bar dataKey="return5Y" fill="hsl(var(--chart-2))" radius={[2, 2, 0, 0]} />
@@ -226,32 +249,35 @@ export default function CategoryPerformanceTab() {
           </CardContent>
         </Card>
 
-        {/* Assets by Category */}
+        {/* Assets by Category - Full Width, Top 20 */}
         <Card>
           <CardHeader>
             <CardTitle>Total Assets by Category</CardTitle>
-            <CardDescription>Total fund size by investment category</CardDescription>
+            <CardDescription>Top 20 categories by total assets under management</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer
               config={{
                 assets: { label: "Total Assets", color: "hsl(var(--chart-3))" },
               }}
-              className="h-[500px] w-full"
+              className="h-[600px] w-full"
             >
-              <BarChart data={data.categoryAssetsData.slice(0, 10)} width="100%" height={500}>
+              <BarChart data={data.categoryAssetsData.slice(0, 20)} width={1200} height={1200}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="category"
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: 9 }}
                   angle={-45}
                   textAnchor="end"
-                  height={80}
+                  height={100}
                   interval={0}
                 />
-                <YAxis tickFormatter={(value) => `$${(value / 1000000000).toFixed(0)}B`} tick={{ fontSize: 12 }} />
+                <YAxis 
+                  tickFormatter={(value) => `$${(value / 1000000000).toFixed(0)}B`} 
+                  tick={{ fontSize: 14 }}
+                />
                 <ChartTooltip
-                  content={<ChartTooltipContent />}
+                  content={<ChartTooltipContent />} 
                   formatter={(value) => [`$${(Number(value) / 1000000000).toFixed(1)}B`, "Total Assets"]}
                 />
                 <Bar dataKey="assets" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
