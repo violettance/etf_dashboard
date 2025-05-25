@@ -1,8 +1,8 @@
 # ETF Analytics Dashboard
 
-![ETF Dashboard Screenshot](image.png)
-
 A modern, interactive dashboard for analyzing Exchange-Traded Funds (ETFs) performance, market trends, and sentiment analysis. Built with Next.js, TypeScript, and Tailwind CSS, this dashboard provides comprehensive insights into the ETF market with a focus on professional UX, mobile responsiveness, and dark mode support.
+
+![ETF Dashboard Screenshot](image.png)
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-View%20Dashboard-blue?style=for-the-badge)](https://v0-data-dashboard-design-iota.vercel.app/)
 
