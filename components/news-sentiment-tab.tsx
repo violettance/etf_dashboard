@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Image from "next/image"
+import { trackCardClick } from "@/lib/gtm"
 
 const TOPICS = [
   { key: "technology", label: "Technology" },
@@ -201,6 +202,19 @@ export default function NewsSentimentTab() {
     )
   }
 
+  // Handle news card clicks
+  const handleCardClick = (item: any) => {
+    const cardId = item.title?.slice(0, 50) || 'unknown_card'
+    const sentiment = item.overall_sentiment_label || 'neutral'
+    trackCardClick(cardId, sentiment)
+  }
+
+  const handleReadMoreClick = (item: any) => {
+    const cardId = item.title?.slice(0, 50) || 'unknown_card'
+    const sentiment = item.overall_sentiment_label || 'neutral'
+    trackCardClick(cardId, sentiment)
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -231,7 +245,11 @@ export default function NewsSentimentTab() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredNews.map((item: any, idx: number) => (
-                <Card key={item.url + idx} className="flex flex-col h-full">
+                <Card 
+                  key={item.url + idx} 
+                  className="flex flex-col h-full cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => handleCardClick(item)}
+                >
                   <div className="relative w-full h-32 mb-2">
                     {item.banner_image && typeof item.banner_image === 'string' && item.banner_image.trim() !== '' ? (
                       <Image src={item.banner_image} alt="news" fill className="object-cover rounded-t" />
@@ -250,7 +268,18 @@ export default function NewsSentimentTab() {
                     <SentimentBar score={item.overall_sentiment_score} />
                     <TickerBadges tickers={item.ticker_sentiment} />
                     <div className="mt-3">
-                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-block px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs font-semibold">Read more</a>
+                      <a 
+                        href={item.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="inline-block px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs font-semibold"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleReadMoreClick(item)
+                        }}
+                      >
+                        Read more
+                      </a>
                     </div>
                   </CardContent>
                 </Card>

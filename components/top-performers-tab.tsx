@@ -6,6 +6,7 @@ import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from "recharts"
 import { useEffect, useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { trackChartInteraction } from "@/lib/gtm"
 
 interface TopPerformersData {
   threeYearData: Array<{ etf: string; return: number }>
@@ -121,6 +122,31 @@ export default function TopPerformersTab() {
     .slice(0, 20)
     .map((etf) => ({ etf: etf.symbol, yield: etf.dividendYield }))
 
+  // Handle chart interactions
+  const handle3YChartClick = () => {
+    trackChartInteraction('top_3y_returns_chart', 'click')
+  }
+
+  const handle3YChartHover = () => {
+    trackChartInteraction('top_3y_returns_chart', 'hover')
+  }
+
+  const handle5YChartClick = () => {
+    trackChartInteraction('top_5y_returns_chart', 'click')
+  }
+
+  const handle5YChartHover = () => {
+    trackChartInteraction('top_5y_returns_chart', 'hover')
+  }
+
+  const handleDividendChartClick = () => {
+    trackChartInteraction('top_dividend_yields_chart', 'click')
+  }
+
+  const handleDividendChartHover = () => {
+    trackChartInteraction('top_dividend_yields_chart', 'hover')
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-6">
@@ -151,7 +177,13 @@ export default function TopPerformersTab() {
               }}
               className="h-[400px] w-full"
             >
-              <BarChart data={top3Y} width={800} height={400}>
+              <BarChart 
+                data={top3Y} 
+                width={800} 
+                height={400}
+                onClick={handle3YChartClick}
+                onMouseEnter={handle3YChartHover}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="etf" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={60} interval={0} />
                 <YAxis tick={{ fontSize: 12 }} />
@@ -189,7 +221,13 @@ export default function TopPerformersTab() {
               }}
               className="h-[400px] w-full"
             >
-              <BarChart data={top5Y} width={800} height={400}>
+              <BarChart 
+                data={top5Y} 
+                width={800} 
+                height={400}
+                onClick={handle5YChartClick}
+                onMouseEnter={handle5YChartHover}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="etf" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={60} interval={0} />
                 <YAxis tick={{ fontSize: 12 }} />
@@ -204,7 +242,7 @@ export default function TopPerformersTab() {
         <Card>
           <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-4">
             <div>
-              <CardTitle className="text-lg sm:text-xl">Top ETFs by Dividend Yields</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">Top ETFs by Dividend Yield</CardTitle>
               <CardDescription className="text-xs sm:text-sm">Highest dividend yielding ETFs</CardDescription>
             </div>
             <div className="min-w-[180px] mt-2 sm:mt-0">
@@ -227,16 +265,15 @@ export default function TopPerformersTab() {
               }}
               className="h-[400px] w-full"
             >
-              <BarChart data={topDividend} width={800} height={400}>
+              <BarChart 
+                data={topDividend} 
+                width={800} 
+                height={400}
+                onClick={handleDividendChartClick}
+                onMouseEnter={handleDividendChartHover}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="etf"
-                  tick={{ fontSize: isMobile ? 8 : 10 }}
-                  angle={isMobile ? -60 : -45}
-                  textAnchor="end"
-                  height={isMobile ? 80 : 60}
-                  interval={0}
-                />
+                <XAxis dataKey="etf" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={60} interval={0} />
                 <YAxis tick={{ fontSize: 12 }} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="yield" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />

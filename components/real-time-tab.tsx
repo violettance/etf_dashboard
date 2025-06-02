@@ -6,6 +6,7 @@ import { Line, LineChart, XAxis, YAxis, CartesianGrid } from "recharts"
 import { TrendingUp, TrendingDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useState, useEffect } from "react"
+import { trackSearchPerformed, trackChartInteraction } from "@/lib/gtm"
 
 const API_KEY = process.env.NEXT_PUBLIC_TWELVE_DATA_API_KEY
 const CACHE_DURATION = 1000 * 60 * 30 // 30 minutes
@@ -97,8 +98,21 @@ export default function RealTimeTab() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     if (input.trim() && input.trim().toUpperCase() !== symbol) {
-      setSymbol(input.trim().toUpperCase())
+      const searchQuery = input.trim().toUpperCase()
+      setSymbol(searchQuery)
+      
+      // Track search event
+      trackSearchPerformed(searchQuery)
     }
+  }
+
+  // Handle chart interactions
+  const handleChartClick = () => {
+    trackChartInteraction('price_trend_chart', 'click')
+  }
+
+  const handleChartHover = () => {
+    trackChartInteraction('price_trend_chart', 'hover')
   }
 
   return (
@@ -182,7 +196,13 @@ export default function RealTimeTab() {
                 }}
                 className="h-[400px] w-full"
               >
-                <LineChart data={priceData} width={1200} height={400}>
+                <LineChart 
+                  data={priceData} 
+                  width={1200} 
+                  height={400}
+                  onClick={handleChartClick}
+                  onMouseEnter={handleChartHover}
+                >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     dataKey="date"

@@ -25,3 +25,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Google Cloud service account credentials
+analytics/gen-lang-client-0301679764-5b6ce0c22aec.json
+gen-lang-client-0301679764-5b6ce0c22aec.json
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!components.json
+

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from "recharts"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { trackChartInteraction } from "@/lib/gtm"
 
 interface OverviewData {
   totalAssets: number
@@ -179,6 +180,23 @@ export default function OverviewTab() {
     }))
   }
 
+  // Handle chart interactions
+  const handleDividendChartClick = () => {
+    trackChartInteraction('dividend_yield_distribution', 'click')
+  }
+
+  const handleDividendChartHover = () => {
+    trackChartInteraction('dividend_yield_distribution', 'hover')
+  }
+
+  const handlePEChartClick = () => {
+    trackChartInteraction('trailing_pe_distribution', 'click')
+  }
+
+  const handlePEChartHover = () => {
+    trackChartInteraction('trailing_pe_distribution', 'hover')
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center h-64">Loading...</div>
   }
@@ -199,52 +217,59 @@ export default function OverviewTab() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">Sum of all ETF assets</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200 dark:border-blue-800">
-          <CardHeader className="pb-2">
-            <CardDescription>Average 3-Year Return</CardDescription>
-            <CardTitle className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-              {(data.threeYearReturn * 100).toFixed(2)}%
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">Annualized return</p>
+            <p className="text-sm text-muted-foreground">Combined assets under management</p>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-200 dark:border-green-800">
           <CardHeader className="pb-2">
-            <CardDescription>Average 5-Year Return</CardDescription>
+            <CardDescription>Median 3-Year Return</CardDescription>
             <CardTitle className="text-3xl font-bold text-green-600 dark:text-green-400">
+              {(data.threeYearReturn * 100).toFixed(2)}%
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Annualized median performance</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200 dark:border-blue-800">
+          <CardHeader className="pb-2">
+            <CardDescription>Median 5-Year Return</CardDescription>
+            <CardTitle className="text-3xl font-bold text-blue-600 dark:text-blue-400">
               {(data.fiveYearReturn * 100).toFixed(2)}%
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">Annualized return</p>
+            <p className="text-sm text-muted-foreground">Long-term median performance</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Histogram Charts */}
-      <div className="grid grid-cols-1 gap-6">
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Dividend Yield Distribution */}
         <Card>
           <CardHeader>
             <CardTitle>Dividend Yield Distribution</CardTitle>
-            <CardDescription>Distribution of ETF dividend yields</CardDescription>
+            <CardDescription>Number of ETFs by dividend yield range</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer
               config={{
-                count: { label: "ETF Count", color: "hsl(var(--chart-1))" },
+                count: { label: "Count", color: "hsl(var(--chart-1))" },
               }}
-              className="h-[400px] w-full"
+              className="h-[300px] w-full"
             >
-              <BarChart data={data.dividendYieldData} width={800} height={400}>
+              <BarChart 
+                data={data.dividendYieldData} 
+                width={400} 
+                height={300}
+                onClick={handleDividendChartClick}
+                onMouseEnter={handleDividendChartHover}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="range" tick={{ fontSize: isMobile ? 6 : 12 }} interval={0} />
+                <XAxis dataKey="range" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 12 }} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="count" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
@@ -253,21 +278,28 @@ export default function OverviewTab() {
           </CardContent>
         </Card>
 
+        {/* Trailing P/E Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle>Trailing P/E Ratio Distribution</CardTitle>
-            <CardDescription>Distribution of ETF price-to-earnings ratios</CardDescription>
+            <CardTitle>Trailing P/E Distribution</CardTitle>
+            <CardDescription>Number of ETFs by trailing P/E ratio range</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer
               config={{
-                count: { label: "ETF Count", color: "hsl(var(--chart-2))" },
+                count: { label: "Count", color: "hsl(var(--chart-2))" },
               }}
-              className="h-[400px] w-full"
+              className="h-[300px] w-full"
             >
-              <BarChart data={data.trailingPEData} width={800} height={400}>
+              <BarChart 
+                data={data.trailingPEData} 
+                width={400} 
+                height={300}
+                onClick={handlePEChartClick}
+                onMouseEnter={handlePEChartHover}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="range" tick={{ fontSize: 12 }} interval={0} />
+                <XAxis dataKey="range" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 12 }} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="count" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
